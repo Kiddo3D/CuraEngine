@@ -77,6 +77,19 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
     {
         firmware_retract = false;
     }
+
+	if (flavor == EGCodeFlavor::KIDDO)
+	{
+		xyzPrecision = 3;
+		ePrecision = 4;
+		argsSeparator = "";	
+	}
+	else
+	{
+		xyzPrecision = 4;
+		ePrecision = 5;
+		argsSeparator = " ";	
+	}
 }
 
 EGCodeFlavor GCodeExport::getFlavor()
@@ -237,7 +250,7 @@ void GCodeExport::resetExtrusionValue()
 {
     if (current_e_value != 0.0 && flavor != EGCodeFlavor::MAKERBOT && flavor != EGCodeFlavor::BFB)
     {
-        *output_stream << "G92 " << extruder_attr[current_extruder].extruderCharacter << "0\n";
+        *output_stream << "G92" << argsSeparator << extruder_attr[current_extruder].extruderCharacter << "0\n";
         double current_extruded_volume = getCurrentExtrudedVolume();
         extruder_attr[current_extruder].totalFilament += current_extruded_volume;
         for (double& extruded_volume_at_retraction : extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions)
@@ -251,7 +264,7 @@ void GCodeExport::resetExtrusionValue()
 
 void GCodeExport::writeDelay(double timeAmount)
 {
-    *output_stream << "G4 P" << int(timeAmount * 1000) << "\n";
+    *output_stream << "G4" << argsSeparator << "P" << int(timeAmount * 1000) << "\n";
     estimateCalculator.addTime(timeAmount);
 }
 
@@ -288,7 +301,7 @@ void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusi
             {
                 //fprintf(f, "; %f e-per-mm %d mm-width %d mm/s\n", extrusion_per_mm, lineWidth, speed);
                 //fprintf(f, "M108 S%0.1f\r\n", rpm);
-                *output_stream << "M108 S" << std::setprecision(1) << rpm << "\r\n";
+                *output_stream << "M108" << argsSeparator << "S" << std::setprecision(1) << rpm << "\r\n";
                 currentSpeed = double(rpm);
             }
             //Add M101 or M201 to enable the proper extruder.
@@ -313,10 +326,10 @@ void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusi
             extruder_attr[current_extruder].retraction_e_amount_current = 1.0; // 1.0 used as stub; BFB doesn't use the actual retraction amount; it performs retraction on the firmware automatically
         }
     }
-    *output_stream << std::setprecision(3) << 
-        "G1 X" << INT2MM(gcode_pos.X) << 
-        " Y" << INT2MM(gcode_pos.Y) << 
-        " Z" << INT2MM(z) << std::setprecision(1) << " F" << fspeed << "\r\n";
+    *output_stream << std::setprecision(xyzPrecision) << 
+        "G1" << argsSeparator << "X" << INT2MM(gcode_pos.X) << argsSeparator << 
+        "Y" << INT2MM(gcode_pos.Y) << argsSeparator << 
+        "Z" << INT2MM(z) << std::setprecision(1) << argsSeparator << "F" << fspeed << "\r\n";
     
     currentPosition = Point3(x, y, z);
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), speed);
@@ -355,7 +368,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         Point3 diff = Point3(x,y,z) - getPosition();
         if (isZHopped > 0)
         {
-            *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z) << "\n";
+            *output_stream << std::setprecision(xyzPrecision) << "G1" << argsSeparator << "Z" << INT2MM(currentPosition.z) << "\n";
             isZHopped = 0;
         }
         double prime_volume = extruder_attr[current_extruder].prime_volume;
@@ -368,7 +381,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
                 //Assume default UM2 retraction settings.
                 if (prime_volume > 0)
                 {
-                    *output_stream << "G1 F" << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
+                    *output_stream << "G1" << argsSeparator << "F" << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << argsSeparator << extruder_attr[current_extruder].extruderCharacter << std::setprecision(ePrecision) << current_e_value << "\n";
                     currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
                 }
                 estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), 25.0);
@@ -376,7 +389,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             else
             {
                 current_e_value += extruder_attr[current_extruder].retraction_e_amount_current;
-                *output_stream << "G1 F" << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
+                *output_stream << "G1" << argsSeparator << "F" << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << argsSeparator << extruder_attr[current_extruder].extruderCharacter << std::setprecision(ePrecision) << current_e_value << "\n";
                 currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
                 estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
             }
@@ -388,7 +401,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         }
         else if (prime_volume > 0.0)
         {
-            *output_stream << "G1 F" << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
+            *output_stream << "G1" << argsSeparator << "F" << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << argsSeparator << extruder_attr[current_extruder].extruderCharacter << std::setprecision(ePrecision) << current_e_value << "\n";
             currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
             estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
         }
@@ -413,17 +426,17 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
 
     if (currentSpeed != speed)
     {
-        *output_stream << " F" << (speed * 60);
+        *output_stream << argsSeparator << "F" << (speed * 60);
         currentSpeed = speed;
     }
 
-    *output_stream << std::setprecision(3) << 
-        " X" << INT2MM(gcode_pos.X) << 
-        " Y" << INT2MM(gcode_pos.Y);
+    *output_stream << std::setprecision(xyzPrecision) << argsSeparator <<
+        "X" << INT2MM(gcode_pos.X) << argsSeparator << 
+        "Y" << INT2MM(gcode_pos.Y);
     if (z != currentPosition.z + isZHopped)
-        *output_stream << " Z" << INT2MM(z + isZHopped);
+        *output_stream << argsSeparator << "Z" << INT2MM(z + isZHopped);
     if (extrusion_mm3_per_mm > 0.000001)
-        *output_stream << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value;
+        *output_stream << argsSeparator << extruder_attr[current_extruder].extruderCharacter << std::setprecision(ePrecision) << current_e_value;
     *output_stream << "\n";
     
     currentPosition = Point3(x, y, z);
@@ -482,7 +495,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     else
     {
         current_e_value -= retraction_e_amount;
-        *output_stream << "G1 F" << (config->speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
+        *output_stream << "G1" << argsSeparator << "F" << (config->speed * 60) << argsSeparator << extruder_attr[current_extruder].extruderCharacter << std::setprecision(ePrecision) << current_e_value << "\n";
         currentSpeed = config->speed;
         estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
     }
@@ -493,7 +506,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     if (config->zHop > 0)
     {
         isZHopped = config->zHop;
-        *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z + isZHopped) << "\n";
+        *output_stream << std::setprecision(xyzPrecision) << "G1" << argsSeparator << "Z" << INT2MM(currentPosition.z + isZHopped) << "\n";
     }
 }
 
@@ -524,13 +537,13 @@ void GCodeExport::writeRetraction_extruderSwitch()
         {
             return; 
         }
-        *output_stream << "G10 S1\n";
+        *output_stream << "G10" << argsSeparator << "S1\n";
     }
     else
     {
         current_e_value -= retraction_e_amount;
-        *output_stream << "G1 F" << (extruder_attr[current_extruder].extruderSwitchRetractionSpeed * 60) << " " 
-            << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
+        *output_stream << "G1" << argsSeparator << "F" << (extruder_attr[current_extruder].extruderSwitchRetractionSpeed * 60) << argsSeparator 
+            << extruder_attr[current_extruder].extruderCharacter << std::setprecision(ePrecision) << current_e_value << "\n";
             // the E value of the extruder switch retraction 'overwrites' the E value of the normal retraction
         currentSpeed = extruder_attr[current_extruder].extruderSwitchRetractionSpeed;
         extruder_attr[current_extruder].last_retraction_prime_speed = extruder_attr[current_extruder].extruderSwitchPrimeSpeed;
@@ -558,7 +571,7 @@ void GCodeExport::switchExtruder(int new_extruder)
     writeCode(extruder_attr[old_extruder].end_code.c_str());
     if (flavor == EGCodeFlavor::MAKERBOT)
     {
-        *output_stream << "M135 T" << current_extruder << "\n";
+        *output_stream << "M135" << argsSeparator << "T" << current_extruder << "\n";
     }
     else
     {
@@ -586,14 +599,14 @@ void GCodeExport::writeFanCommand(double speed)
     if (speed > 0)
     {
         if (flavor == EGCodeFlavor::MAKERBOT)
-            *output_stream << "M126 T0\n"; //value = speed * 255 / 100 // Makerbot cannot set fan speed...;
+            *output_stream << "M126" << argsSeparator << "T0\n"; //value = speed * 255 / 100 // Makerbot cannot set fan speed...;
         else
-            *output_stream << "M106 S" << (speed * 255 / 100) << "\n";
+            *output_stream << "M106" << argsSeparator << "S" << (speed * 255 / 100) << "\n";
     }
     else
     {
         if (flavor == EGCodeFlavor::MAKERBOT)
-            *output_stream << "M127 T0\n";
+            *output_stream << "M127" << argsSeparator << "T0\n";
         else
             *output_stream << "M107\n";
     }
@@ -610,17 +623,17 @@ void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool
     else
         *output_stream << "M104";
     if (extruder != current_extruder)
-        *output_stream << " T" << extruder;
-    *output_stream << " S" << temperature << "\n";
+        *output_stream << argsSeparator << "T" << extruder;
+    *output_stream << argsSeparator << "S" << temperature << "\n";
     extruder_attr[extruder].currentTemperature = temperature;
 }
 
 void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
 {
     if (wait)
-        *output_stream << "M190 S";
+        *output_stream << "M190" << argsSeparator << "S";
     else
-        *output_stream << "M140 S";
+        *output_stream << "M140" << argsSeparator << "S";
     *output_stream << temperature << "\n";
 }
 

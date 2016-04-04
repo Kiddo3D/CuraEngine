@@ -75,6 +75,11 @@ enum class EGCodeFlavor
  *  M106 Sxxx and M107 are used to turn the fan on/off.
  **/
     REPRAP_VOLUMATRIC = 5,
+/**
+ * Kiddo flavored GCode is based on RepRap GCode.
+ *  Precision is reduced and spaces are removed for file size optimization. 
+ **/
+    KIDDO = 6,
 };
 
 /*!

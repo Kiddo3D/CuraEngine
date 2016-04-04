@@ -212,7 +212,11 @@ private:
     bool firmware_retract; //!< whether retractions are done in the firmware, or hardcoded in E values.
 
     unsigned int layer_nr; //!< for sending travel data
-    
+
+	int xyzPrecision;
+	int ePrecision;
+	std::string argsSeparator;
+
 public:
     
     GCodeExport();

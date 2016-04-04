@@ -28,6 +28,8 @@ std::string toString(EGCodeFlavor flavor)
             return "UltiGCode";
         case EGCodeFlavor::REPRAP_VOLUMATRIC:
             return "RepRap(Volumetric)";
+		case EGCodeFlavor::KIDDO:
+			return "Kiddo";
         case EGCodeFlavor::REPRAP:
         default:
             return "RepRap";
@@ -274,6 +276,8 @@ EGCodeFlavor SettingsBaseVirtual::getSettingAsGCodeFlavor(std::string key) const
         return EGCodeFlavor::MACH3;
     else if (value == "RepRap (Volumatric)")
         return EGCodeFlavor::REPRAP_VOLUMATRIC;
+    else if (value == "Kiddo")
+        return EGCodeFlavor::KIDDO;
     return EGCodeFlavor::REPRAP;
 }
 
