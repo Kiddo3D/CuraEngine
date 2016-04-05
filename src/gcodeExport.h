@@ -215,6 +215,7 @@ private:
 
 	int xyzPrecision;
 	int ePrecision;
+	int fPrecision;
 	std::string argsSeparator;
 
 public:
